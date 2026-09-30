@@ -1,0 +1,9 @@
+create install file and coninuously update when needed
+  Install all dependencied like pycamera2 and opencv
+  imports github repo
+  creates service and runs on startup
+create UI
+Create Motor Driver for servo
+Create object tracking based on yolo model
+
+
