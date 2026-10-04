@@ -10,7 +10,7 @@ PROJECT_DIR = "/home/admin/AVD-1"
 PYTHON_PATH = "/usr/bin/python3" 
 ENTRY_FILE = "main.py"  # your main program entry point
 SERVICE_FILE = f"/etc/systemd/system/{PROJECT_NAME}.service"
-DEPENDENCIES = ["opencv-python", "numpy", "picamera2"]
+DEPENDENCIES = ["opencv-python", "numpy", "picamera2", customtkinter]
 GITHUB_REPO = "https://github.com/Ozurk/AVD-1"
 
 # -------------------------------
