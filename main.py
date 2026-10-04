@@ -2,6 +2,12 @@ import cv2
 import customtkinter as ctk
 from PIL import Image
 
+import os
+# Tell Python to use the primary physical monitor
+os.environ["DISPLAY"] = ":0"
+
+
+# ... rest of your code ...
 # Set modern theme
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
