@@ -11,6 +11,19 @@ PYTHON_PATH = "/usr/bin/python3"
 ENTRY_FILE = "main.py"  # your main program entry point
 SERVICE_FILE = f"/etc/systemd/system/{PROJECT_NAME}.service"
 DEPENDENCIES = ["opencv-python", "numpy", "picamera2"]
+GITHUB_REPO = "https://github.com/Ozurk/AVD-1"
+
+# -------------------------------
+# Pull Repository from GitHub
+# -------------------------------
+
+if not os.path.exists(PROJECT_DIR):
+    print(f"Cloning repository from {GITHUB_REPO}")
+    try:
+        subprocess.run(["git", "clone", GITHUB_REPO], check=True)
+        print("Repository cloned successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error cloning repository: {e}")
 
 # -------------------------------
 # 1. Install Python dependencies
@@ -70,4 +83,7 @@ try:
 except subprocess.CalledProcessError as e:
     print(f" Failed to enable/start service: {e}")
 
+# -------------------------------
+# Pull Repository from GitHub
+# -------------------------------
 print(" Setup complete!")
