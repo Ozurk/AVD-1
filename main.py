@@ -1,10 +1,13 @@
+import csv
 import cv2
 import customtkinter as ctk
 from PIL import Image
+from pathlib import Path
 
 import os
 # Tell Python to use the primary physical monitor
 os.environ["DISPLAY"] = ":0"
+CONFIG_PATH = Path(__file__).with_name("config.csv")
 
 
 # ... rest of your code ...
@@ -46,6 +49,7 @@ class RobotUI(ctk.CTk):
 
         # Variable to keep track of the setup window
         self.setup_window = None
+        self.config_window = None
 
         # Start the video loop
         self.update_video_feed()
@@ -77,22 +81,26 @@ class RobotUI(ctk.CTk):
         if self.setup_window is None or not self.setup_window.winfo_exists():
             self.setup_window = ctk.CTkToplevel(self)
             self.setup_window.title("Setup")
-            self.setup_window.geometry("350x200")
+            window_width = 350
+            window_height = 200
+            window_x = (self.winfo_screenwidth() - window_width) // 2
+            window_y = (self.winfo_screenheight() - window_height) // 2
+            self.setup_window.geometry(
+                f"{window_width}x{window_height}+{window_x}+{window_y}"
+            )
             
             # Keep the setup window on top of the fullscreen main app
             self.setup_window.attributes('-topmost', True) 
             
-            # Center the window on the screen
-            self.setup_window.eval('tk::PlaceWindow . center')
-
             # 4. Setup Window Buttons
-            btn_sensitivity = ctk.CTkButton(
+            btn_config = ctk.CTkButton(
                 self.setup_window, 
-                text="Sensitivity",
+                text="Config",
+                command=self.open_config_window,
                 font=("Arial", 14),
                 height=40
             )
-            btn_sensitivity.pack(pady=(35, 15), padx=40, fill="x")
+            btn_config.pack(pady=(35, 15), padx=40, fill="x")
 
             btn_target = ctk.CTkButton(
                 self.setup_window, 
@@ -101,9 +109,87 @@ class RobotUI(ctk.CTk):
                 height=40
             )
             btn_target.pack(pady=10, padx=40, fill="x")
+            self.setup_window.lift()
+            self.setup_window.focus_force()
         else:
             # If it already exists, just bring it to the front
+            self.setup_window.lift()
             self.setup_window.focus()
+
+    def open_config_window(self):
+        if self.config_window is None or not self.config_window.winfo_exists():
+            self.config_window = ctk.CTkToplevel(self)
+            self.config_window.title("Config")
+            window_width = 360
+            window_height = 220
+            window_x = (self.winfo_screenwidth() - window_width) // 2
+            window_y = (self.winfo_screenheight() - window_height) // 2
+            self.config_window.geometry(
+                f"{window_width}x{window_height}+{window_x}+{window_y}"
+            )
+            self.config_window.attributes('-topmost', True)
+
+            self.sensitivity_value_label = ctk.CTkLabel(
+                self.config_window, text="Sensitivity: 50"
+            )
+            self.sensitivity_value_label.pack(pady=(24, 8))
+            self.sensitivity_slider = ctk.CTkSlider(
+                self.config_window,
+                from_=0,
+                to=100,
+                number_of_steps=100,
+                command=self.update_sensitivity_value,
+            )
+            self.sensitivity_slider.set(50)
+            self.sensitivity_slider.pack(fill="x", padx=30, pady=(0, 12))
+
+            save_button = ctk.CTkButton(
+                self.config_window,
+                text="Save",
+                command=self.save_sensitivity,
+                height=32,
+            )
+            save_button.pack(pady=(0, 6))
+            self.config_status_label = ctk.CTkLabel(self.config_window, text="")
+            self.config_status_label.pack(pady=(0, 8))
+
+            self.config_window.lift()
+            self.config_window.focus_force()
+        else:
+            self.config_window.lift()
+            self.config_window.focus()
+
+    def update_sensitivity_value(self, value):
+        self.sensitivity_value_label.configure(
+            text=f"Sensitivity: {int(float(value))}"
+        )
+
+    def save_sensitivity(self):
+        sensitivity = int(round(self.sensitivity_slider.get()))
+        with CONFIG_PATH.open("r", newline="", encoding="utf-8") as config_file:
+            rows = list(csv.reader(config_file))
+
+        sensitivity_row = None
+        for row in rows:
+            if row and row[0].strip().lower() == "sensitivity":
+                sensitivity_row = row
+                break
+
+        if sensitivity_row is None:
+            self.config_status_label.configure(
+                text="Sensitivity key not found in config.csv"
+            )
+            return
+
+        if len(sensitivity_row) > 1:
+            sensitivity_row[1] = str(sensitivity)
+        else:
+            sensitivity_row.append(str(sensitivity))
+
+        with CONFIG_PATH.open("w", newline="", encoding="utf-8") as config_file:
+            csv.writer(config_file).writerows(rows)
+
+        self.config_status_label.configure(text=f"Saved sensitivity: {sensitivity}")
 
     def quit_app(self, event=None):
         """Safely release the camera and close the app."""
