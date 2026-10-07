@@ -1,7 +1,7 @@
 import csv
 import cv2
 import customtkinter as ctk
-from PIL import Image
+from PIL import Image, ImageTk
 from pathlib import Path
 import os
 from picamera2 import Picamera2
