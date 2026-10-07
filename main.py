@@ -3,14 +3,13 @@ import cv2
 import customtkinter as ctk
 from PIL import Image
 from pathlib import Path
-
 import os
+from picamera2 import Picamera2
+
 # Tell Python to use the primary physical monitor
 os.environ["DISPLAY"] = ":0"
 CONFIG_PATH = Path(__file__).with_name("config.csv")
 
-
-# ... rest of your code ...
 # Set modern theme
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -27,16 +26,16 @@ class RobotUI(ctk.CTk):
         # Bind the Escape key so you have a way to close the full-screen app
         self.bind("<Escape>", self.quit_app)
 
-        # 2. Initialize Camera 
-        # (0 is usually the default Pi Camera if v4l2 is enabled. Change to 1 or higher if needed)
-        self.cap = cv2.VideoCapture(0)
-        
+        # 2. Initialize Picamera2
+        self.picam2 = Picamera2()
+        self.picam2.configure(self.picam2.create_preview_configuration(main={"size": (640, 480)}))
+        self.picam2.start()
+
         # Label to hold the video feed
         self.video_label = ctk.CTkLabel(self, text="")
         self.video_label.pack(fill="both", expand=True)
 
         # 3. Setup Button in the Top Right
-        # Using .place() allows us to float the button over the video feed
         self.setup_btn = ctk.CTkButton(
             self, 
             text="Setup", 
@@ -55,18 +54,18 @@ class RobotUI(ctk.CTk):
         self.update_video_feed()
 
     def update_video_feed(self):
-        ret, frame = self.cap.read()
-        if ret:
+        # Capture frame as a NumPy array
+        frame = self.picam2.capture_array()
+
+        if frame is not None:
             # Get screen dimensions
             screen_width = self.winfo_screenwidth()
             screen_height = self.winfo_screenheight()
 
-            # Resize the OpenCV frame to fill the screen
-            # (cv2.resize is used here because it is much faster than PIL for the Raspberry Pi)
+            # Resize the frame to fill the screen
             frame = cv2.resize(frame, (screen_width, screen_height))
 
-            # Convert BGR (OpenCV format) to RGB (PIL format)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Convert RGB (Picamera2 default output) to PIL Image
             image = Image.fromarray(frame)
 
             # Convert to CTkImage and update the label
@@ -77,7 +76,6 @@ class RobotUI(ctk.CTk):
         self.after(30, self.update_video_feed)
 
     def open_setup_window(self):
-        # Check if window is already open to prevent multiple windows
         if self.setup_window is None or not self.setup_window.winfo_exists():
             self.setup_window = ctk.CTkToplevel(self)
             self.setup_window.title("Setup")
@@ -89,10 +87,8 @@ class RobotUI(ctk.CTk):
                 f"{window_width}x{window_height}+{window_x}+{window_y}"
             )
             
-            # Keep the setup window on top of the fullscreen main app
             self.setup_window.attributes('-topmost', True) 
             
-            # 4. Setup Window Buttons
             btn_config = ctk.CTkButton(
                 self.setup_window, 
                 text="Config",
@@ -112,7 +108,6 @@ class RobotUI(ctk.CTk):
             self.setup_window.lift()
             self.setup_window.focus_force()
         else:
-            # If it already exists, just bring it to the front
             self.setup_window.lift()
             self.setup_window.focus()
 
@@ -193,8 +188,10 @@ class RobotUI(ctk.CTk):
 
     def quit_app(self, event=None):
         """Safely release the camera and close the app."""
-        if self.cap.isOpened():
-            self.cap.release()
+        try:
+            self.picam2.stop()
+        except Exception:
+            pass
         self.destroy()
 
 if __name__ == "__main__":
