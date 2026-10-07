@@ -1,10 +1,9 @@
 import os
 import cv2
-
 # Tell Python to use the physical monitor plugged into the Pi
 os.environ["DISPLAY"] = ":0"
 
-# Open the default camera (V4L2 index 0)
+# Open the default camera (V4L2 index 0)py 
 cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
