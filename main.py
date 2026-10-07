@@ -58,6 +58,9 @@ class RobotUI(ctk.CTk):
         frame = self.picam2.capture_array()
 
         if frame is not None:
+
+            frame = cv2.flip(frame, 0)
+            
             # Get screen dimensions
             screen_width = self.winfo_screenwidth()
             screen_height = self.winfo_screenheight()
