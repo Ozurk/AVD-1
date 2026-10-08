@@ -5,7 +5,8 @@ from PIL import Image, ImageTk
 from pathlib import Path
 import os
 from picamera2 import Picamera2
-
+import object_detection
+import time
 # Tell Python to use the primary physical monitor
 os.environ["DISPLAY"] = ":0"
 CONFIG_PATH = Path(__file__).with_name("config.csv")
@@ -19,7 +20,7 @@ class RobotUI(ctk.CTk):
         super().__init__()
 
         self.title("YOLO Animal Detection")
-        
+        self.object_detector = object_detection.ObjectDetector()
         # 1. Set full screen
         self.attributes('-fullscreen', True)
         
@@ -54,28 +55,28 @@ class RobotUI(ctk.CTk):
         self.update_video_feed()
 
     def update_video_feed(self):
-        # Capture frame as a NumPy array
         frame = self.picam2.capture_array()
-
         if frame is not None:
-
             frame = cv2.flip(frame, 0)
-            
-            # Get screen dimensions
             screen_width = self.winfo_screenwidth()
             screen_height = self.winfo_screenheight()
-
-            # Resize the frame to fill the screen
-            frame = cv2.resize(frame, (screen_width, screen_height))
-
-            # Convert RGB (Picamera2 default output) to PIL Image
-            image = Image.fromarray(frame)
-
-            # Convert to CTkImage and update the label
+            
+            # Run YOLO every 2 seconds to keep GUI responsive
+            current_time = time.time()
+            self.cached_frame = self.detector.process_frame(frame)
+            #if current_time - self.last_detection_time >= 2.0:
+            #    self.last_detection_time = current_time
+                # Process frame array and return annotated frame
+            #    self.cached_frame = self.detector.process_frame(frame)
+            
+            # Display the marked-up frame (or raw frame if waiting)
+            display_frame = self.cached_frame if self.cached_frame is not None else frame
+            
+            # Convert to PIL and update CTkImage
+            image = Image.fromarray(display_frame)
             ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(screen_width, screen_height))
             self.video_label.configure(image=ctk_image)
 
-        # Schedule the next frame update in ~30ms (approx 30 FPS)
         self.after(30, self.update_video_feed)
 
     def open_setup_window(self):
