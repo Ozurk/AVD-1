@@ -7,6 +7,7 @@ import os
 from picamera2 import Picamera2
 import object_detection
 import time
+
 # Tell Python to use the primary physical monitor
 os.environ["DISPLAY"] = ":0"
 CONFIG_PATH = Path(__file__).with_name("config.csv")
@@ -23,14 +24,17 @@ class RobotUI(ctk.CTk):
         self.object_detector = object_detection.ObjectDetector()
         # 1. Set full screen
         self.attributes('-fullscreen', True)
-        
         # Bind the Escape key so you have a way to close the full-screen app
         self.bind("<Escape>", self.quit_app)
 
         # 2. Initialize Picamera2
         self.picam2 = Picamera2()
         self.picam2.configure(self.picam2.create_preview_configuration(main={"size": (640, 480)}))
+        self.screen_width = self.winfo_screenwidth()
+        self.screen_height = self.winfo_screenheight()
         self.picam2.start()
+        self.last_detection_time = 0
+        self.cached_frame = None  # Store the last processed frame
 
         # Label to hold the video feed
         self.video_label = ctk.CTkLabel(self, text="")
@@ -58,8 +62,6 @@ class RobotUI(ctk.CTk):
         frame = self.picam2.capture_array()
         if frame is not None:
             frame = cv2.flip(frame, 0)
-            screen_width = self.winfo_screenwidth()
-            screen_height = self.winfo_screenheight()
             
             # Run YOLO every 2 seconds to keep GUI responsive
             current_time = time.time()
@@ -73,7 +75,7 @@ class RobotUI(ctk.CTk):
             
             # Convert to PIL and update CTkImage
             image = Image.fromarray(display_frame)
-            ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(screen_width, screen_height))
+            ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(self.screen_width, self.screen_height))
             self.video_label.configure(image=ctk_image)
 
         self.after(30, self.update_video_feed)
