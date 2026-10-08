@@ -63,11 +63,10 @@ class RobotUI(ctk.CTk):
             
             # Run YOLO every 2 seconds to keep GUI responsive
             current_time = time.time()
-            self.cached_frame = self.detector.process_frame(frame)
-            #if current_time - self.last_detection_time >= 2.0:
-            #    self.last_detection_time = current_time
+            if current_time - self.last_detection_time >= 2.0:
+                self.last_detection_time = current_time
                 # Process frame array and return annotated frame
-            #    self.cached_frame = self.detector.process_frame(frame)
+                self.cached_frame = self.detector.process_frame(frame)
             
             # Display the marked-up frame (or raw frame if waiting)
             display_frame = self.cached_frame if self.cached_frame is not None else frame
