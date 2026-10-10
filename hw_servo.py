@@ -16,10 +16,12 @@ class Servo():
         self.pwm.change_duty_cycle(self.current_duty)
         while self.current_duty <= self.max_duty:
             self.current_duty += .001
+            time.sleep(0.01)  # Small delay to allow the servo to move
             self.pwm.change_duty_cycle(self.current_duty)
         while self.current_duty >= self.min_duty:
             self.current_duty -= .001
             self.pwm.change_duty_cycle(self.current_duty)
+            time.sleep(0.01)  # Small delay to allow the servo to move
 
 vert = Servo(1, frequency=50, min_duty=5, max_duty=8)
 
