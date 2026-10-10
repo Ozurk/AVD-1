@@ -51,9 +51,14 @@ class RobotUI(ctk.CTk):
         )
         self.setup_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
 
-        # Variable to keep track of the setup window
+        # Variables to keep track of the windows
         self.setup_window = None
         self.config_window = None
+        self.target_window = None
+
+        # Checkbox tracking variables for target selection
+        self.target_options = ["person", "cat", "dog", "car", "bird"]
+        self.target_vars = {target: ctk.BooleanVar(value=True) for target in self.target_options}
 
         # Start the video loop
         self.update_video_feed()
@@ -107,6 +112,7 @@ class RobotUI(ctk.CTk):
             btn_target = ctk.CTkButton(
                 self.setup_window, 
                 text="Target Selection",
+                command=self.open_target_window, # Added command here
                 font=("Arial", 14),
                 height=40
             )
@@ -116,6 +122,37 @@ class RobotUI(ctk.CTk):
         else:
             self.setup_window.lift()
             self.setup_window.focus()
+
+    def open_target_window(self):
+        if self.target_window is None or not self.target_window.winfo_exists():
+            self.target_window = ctk.CTkToplevel(self)
+            self.target_window.title("Target Selection")
+            window_width = 300
+            window_height = 280
+            window_x = (self.winfo_screenwidth() - window_width) // 2
+            window_y = (self.winfo_screenheight() - window_height) // 2
+            self.target_window.geometry(
+                f"{window_width}x{window_height}+{window_x}+{window_y}"
+            )
+            self.target_window.attributes('-topmost', True)
+
+            title_label = ctk.CTkLabel(self.target_window, text="Select Targets:", font=("Arial", 16, "bold"))
+            title_label.pack(pady=(15, 10))
+
+            # Dynamically generate the checkboxes
+            for target in self.target_options:
+                cb = ctk.CTkCheckBox(
+                    self.target_window, 
+                    text=target.capitalize(), 
+                    variable=self.target_vars[target]
+                )
+                cb.pack(pady=8, padx=60, anchor="w")
+
+            self.target_window.lift()
+            self.target_window.focus_force()
+        else:
+            self.target_window.lift()
+            self.target_window.focus()
 
     def open_config_window(self):
         if self.config_window is None or not self.config_window.winfo_exists():

@@ -28,7 +28,7 @@ class ObjectDetector():
 
                 # Draw bounding box (Green)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                cv2.circle(frame, ((x1+x2)//2, (y1+y2)//2), 5, (0, 255, 0), -1)  # Center
+                cv2.circle(frame, ((x1+x2)//2, (y1+y2)//2), 5, (255, 0, 0), -1)  # Center
 
                 # Get label text dimensions
                 (text_width, text_height), baseline = cv2.getTextSize(
