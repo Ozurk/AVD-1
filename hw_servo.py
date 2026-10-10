@@ -23,9 +23,10 @@ class Servo():
             self.pwm.change_duty_cycle(self.current_duty)
             time.sleep(0.003)  # Small delay to allow the servo to move
 
-vert = Servo(1, frequency=50, min_duty=5, max_duty=8)
+vert = Servo(0, frequency=50, min_duty=5, max_duty=8)
+horiz = Servo(1, frequency=50, min_duty=5, max_duty=10)
 
 vert.calibrate()
-        
+horiz.calibrate()
 
           
