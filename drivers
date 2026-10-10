@@ -1,6 +1,0 @@
-import time
-#Raspberry pi 5s need to use a different library than rpi.gpio; they need lgpio or gpiozero
-        
-      
-
-  
