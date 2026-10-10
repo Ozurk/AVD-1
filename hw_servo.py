@@ -2,45 +2,28 @@ from rpi_hardware_pwm import HardwarePWM
 import time
 
 # Initialize Channel 0 (GPIO 18) and Channel 1 (GPIO 19) at 50Hz
-servo_18 = HardwarePWM(pwm_channel=0, hz=50)
-servo_19 = HardwarePWM(pwm_channel=1, hz=50)
+class Servo():
+    def __init__(self, channel, frequency=50, min_duty=5, max_duty=10):
+        self.pwm = HardwarePWM(channel=channel, frequency=frequency)
+        self.pwm.start(0)  # Start with 0% duty cycle
+        self.min_duty = min_duty
+        self.max_duty = max_duty
+        self.current_duty = 0  # Track the current duty cycle
 
-# Start both with a 0% duty cycle (off)
-servo_18.start(0)
-servo_19.start(0)
+    def calibrate(self):
+        self.current_duty = self.min_duty
 
-try:
-    print("Moving both to 0 degrees")
-    servo_18.change_duty_cycle(5.0)
-    
-    time.sleep(1.5)
+        self.pwm.change_duty_cycle(self.current_duty)
+        while self.current_duty <= self.max_duty:
+            self.current_duty += .001
+            self.pwm.change_duty_cycle(self.current_duty)
+        while self.current_duty >= self.min_duty:
+            self.current_duty -= .001
+            self.pwm.change_duty_cycle(self.current_duty)
 
-    print("Moving in opposite directions")
-    servo_18.change_duty_cycle(7.5) 
-    
-    time.sleep(1.5)
+vert = Servo(1)
 
-    print("Moving both to center (90 degrees)")
-    servo_18.change_duty_cycle(5.5)
-    
-    time.sleep(1.5)
+vert.calibrate()
+        
 
-    print("Moving both to 0 degrees")
-    
-    servo_19.change_duty_cycle(5.0)
-    time.sleep(1.5)
-
-    print("Moving in opposite directions")
-    
-    servo_19.change_duty_cycle(7.5)  # Stay at 0 degrees
-    time.sleep(1.5)
-
-    print("Moving both to center (90 degrees)")
-    
-    servo_19.change_duty_cycle(10)
-    time.sleep(1.5)
-
-finally:
-    # Always stop the PWM signals cleanly before exiting
-    servo_18.stop()
-    servo_19.stop()
+          
