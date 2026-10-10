@@ -129,7 +129,7 @@ class RobotUI(ctk.CTk):
             self.target_window = ctk.CTkToplevel(self)
             self.target_window.title("Target Selection")
             window_width = 300
-            window_height = 360  # Increased height slightly to fit the save button
+            window_height = 450  # Increased height slightly to fit the save button
             window_x = (self.winfo_screenwidth() - window_width) // 2
             window_y = (self.winfo_screenheight() - window_height) // 2
             self.target_window.geometry(
