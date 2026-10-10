@@ -102,11 +102,13 @@ class RobotUI(ctk.CTk):
                     
                     # Calculate the difference between the target X and the screen center X (160)
                     error_x = target_x - 160
+                    error_y = target_y - 120  # For tilt, if needed
                     
                     # Move the servo based on the difference (hw_servo.move divides this by 100)
                     # Note: You may need to invert error_x (e.g., -error_x) depending on servo physical orientation
-                    self.pan_servo.move(error_x)
-            
+                    self.pan_servo.move(-1 * error_x)
+                    self.tilt_servo.move(error_y)  # Assuming you have a similar calculation for tilt
+
             # Display the marked-up frame (or raw frame if waiting)
             display_frame = self.cached_frame if self.cached_frame is not None else frame
             
