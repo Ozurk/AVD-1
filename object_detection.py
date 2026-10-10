@@ -15,17 +15,21 @@ class ObjectDetector():
     def process_frame(self, frame):
         """
         Accepts an image frame (NumPy array), runs YOLO object detection,
-        draws bounding boxes and labels on the frame, and returns it.
+        draws bounding boxes and labels on the frame, and returns it
+        along with the (x, y) center coordinate of the highest confidence detection.
         """
         if frame is None:
-            return frame
+            return frame, None
 
         # Skip inference completely if no targets are selected
         if not self.targets:
-            return frame
+            return frame, None
 
         # Run inference on the input frame, filtering by selected class IDs
         results = self.model(frame, classes=self.targets, verbose=False)
+
+        best_confidence = -1.0
+        best_center = None
 
         # Draw bounding boxes and labels
         for result in results:
@@ -35,9 +39,18 @@ class ObjectDetector():
                 class_id = int(box.cls[0])
                 label = f"{self.model.names[class_id]} {confidence:.2f}"
 
+                # Calculate center coordinates
+                center_x = (x1 + x2) // 2
+                center_y = (y1 + y2) // 2
+
+                # Check if this is the highest confidence detection so far
+                if confidence > best_confidence:
+                    best_confidence = confidence
+                    best_center = (center_x, center_y)
+
                 # Draw bounding box (Green)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                cv2.circle(frame, ((x1+x2)//2, (y1+y2)//2), 5, (255, 0, 0), -1)  # Center
+                cv2.circle(frame, (center_x, center_y), 5, (255, 0, 0), -1)  # Center
 
                 # Get label text dimensions
                 (text_width, text_height), baseline = cv2.getTextSize(
@@ -66,4 +79,4 @@ class ObjectDetector():
                     cv2.LINE_AA,
                 )
 
-        return frame
+        return frame, best_center

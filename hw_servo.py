@@ -29,7 +29,8 @@ class Servo():
         move the servio by a certain distance. Positive values move it one way, negative values the other.
         """
         old_duty = self.current_duty
-        new_duty = self.current_duty + distance
+        new_duty = self.current_duty + distance / 100
+        
         if self.min_duty <= new_duty <= self.max_duty:
             self.current_duty = new_duty
             self.pwm.change_duty_cycle(self.current_duty)

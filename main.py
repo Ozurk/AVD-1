@@ -7,6 +7,7 @@ import os
 from picamera2 import Picamera2
 import object_detection
 import time
+import hw_servo  # Imported the servo module
 
 # Tell Python to use the primary physical monitor
 os.environ["DISPLAY"] = ":0"
@@ -23,6 +24,10 @@ class RobotUI(ctk.CTk):
 
         self.title("YOLO Animal Detection")
         self.object_detector = object_detection.ObjectDetector()
+        
+        # Initialize the servo on channel 0
+        self.pan_servo = hw_servo.Servo(channel=0)
+        
         # 1. Set full screen
         self.attributes('-fullscreen', True)
         # Bind the Escape key so you have a way to close the full-screen app
@@ -80,14 +85,26 @@ class RobotUI(ctk.CTk):
         frame = self.picam2.capture_array()
         if frame is not None:
             frame = cv2.flip(frame, 0)
+            # The frame is resized to 320x240, making the center coordinate (160, 120)
             frame = cv2.resize(frame, (320, 240))
             
             # Run YOLO every 2 seconds to keep GUI responsive
             current_time = time.time()
             if current_time - self.last_detection_time >= 2.0:
                 self.last_detection_time = current_time
-                # Process frame array and return annotated frame
-                self.cached_frame = self.object_detector.process_frame(frame)
+                
+                # Unpack the annotated frame and the best target center
+                self.cached_frame, best_center = self.object_detector.process_frame(frame)
+                
+                if best_center is not None:
+                    target_x, target_y = best_center
+                    
+                    # Calculate the difference between the target X and the screen center X (160)
+                    error_x = target_x - 160
+                    
+                    # Move the servo based on the difference (hw_servo.move divides this by 100)
+                    # Note: You may need to invert error_x (e.g., -error_x) depending on servo physical orientation
+                    self.pan_servo.move(error_x)
             
             # Display the marked-up frame (or raw frame if waiting)
             display_frame = self.cached_frame if self.cached_frame is not None else frame
