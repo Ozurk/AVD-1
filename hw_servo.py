@@ -24,7 +24,7 @@ class Servo():
             self.pwm.change_duty_cycle(self.current_duty)
             time.sleep(0.003)  # Small delay to allow the servo to move
 
-        self.current_duty = self.max_duty - self.min_duty
+        self.current_duty = self.max_duty - self.min_duty / 2
         self.pwm.change_duty_cycle(self.current_duty)
 
     def move(self, distance):
