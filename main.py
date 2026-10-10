@@ -11,6 +11,7 @@ import time
 # Tell Python to use the primary physical monitor
 os.environ["DISPLAY"] = ":0"
 CONFIG_PATH = Path(__file__).with_name("config.csv")
+TARGETS_PATH = Path(__file__).with_name("targets.csv")
 
 # Set modern theme
 ctk.set_appearance_mode("Dark")
@@ -112,7 +113,7 @@ class RobotUI(ctk.CTk):
             btn_target = ctk.CTkButton(
                 self.setup_window, 
                 text="Target Selection",
-                command=self.open_target_window, # Added command here
+                command=self.open_target_window, 
                 font=("Arial", 14),
                 height=40
             )
@@ -128,7 +129,7 @@ class RobotUI(ctk.CTk):
             self.target_window = ctk.CTkToplevel(self)
             self.target_window.title("Target Selection")
             window_width = 300
-            window_height = 280
+            window_height = 360  # Increased height slightly to fit the save button
             window_x = (self.winfo_screenwidth() - window_width) // 2
             window_y = (self.winfo_screenheight() - window_height) // 2
             self.target_window.geometry(
@@ -148,11 +149,37 @@ class RobotUI(ctk.CTk):
                 )
                 cb.pack(pady=8, padx=60, anchor="w")
 
+            # Add the Save Button for Targets
+            save_button = ctk.CTkButton(
+                self.target_window,
+                text="Save",
+                command=self.save_targets,
+                height=32,
+            )
+            save_button.pack(pady=(15, 6))
+
+            # Add a status label for target saving
+            self.target_status_label = ctk.CTkLabel(self.target_window, text="")
+            self.target_status_label.pack(pady=(0, 8))
+
             self.target_window.lift()
             self.target_window.focus_force()
         else:
             self.target_window.lift()
             self.target_window.focus()
+
+    def save_targets(self):
+        with TARGETS_PATH.open("w", newline="", encoding="utf-8") as config_file:
+            writer = csv.writer(config_file)
+            # Write the header with specified column names
+            writer.writerow(["target", "selected"])
+            
+            # Write the state of each checkbox
+            for target, var in self.target_vars.items():
+                writer.writerow([target, str(var.get())])
+
+        # Update the UI status label
+        self.target_status_label.configure(text="Targets saved to targets.csv!")
 
     def open_config_window(self):
         if self.config_window is None or not self.config_window.winfo_exists():
