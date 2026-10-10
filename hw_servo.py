@@ -9,6 +9,7 @@ class Servo():
         self.min_duty = min_duty
         self.max_duty = max_duty
         self.current_duty = 0  # Track the current duty cycle
+        self.calibrate()  # Calibrate the servo on initialization
 
     def calibrate(self):
         self.current_duty = self.min_duty
@@ -23,10 +24,18 @@ class Servo():
             self.pwm.change_duty_cycle(self.current_duty)
             time.sleep(0.003)  # Small delay to allow the servo to move
 
-vert = Servo(0, frequency=50, min_duty=5, max_duty=8)
-horiz = Servo(1, frequency=50, min_duty=5, max_duty=10)
+    def move(self, distance):
+        """
+        move the servio by a certain distance. Positive values move it one way, negative values the other.
+        """
+        old_duty = self.current_duty
+        new_duty = self.current_duty + distance
+        if self.min_duty <= new_duty <= self.max_duty:
+            self.current_duty = new_duty
+            self.pwm.change_duty_cycle(self.current_duty)
+        else:
+            print(f"Attempted to move servo to {new_duty}, which is out of bounds ({self.min_duty}-{self.max_duty}).")
+            self.current_duty = old_duty  # Revert to old duty cycle if out of bounds
 
-vert.calibrate()
-horiz.calibrate()
 
           

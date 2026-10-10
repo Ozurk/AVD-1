@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 
 class ObjectDetector():
-    def __init__(self, model_path="yolov8n_ncnn_model"):
+    def __init__(self, model_path="yolov8n_ncnn_model", targets: list = []):
         # Load the YOLO model once during initialization
         self.model = YOLO(model_path)
         print(f"Loaded YOLO model from {model_path}")
@@ -28,6 +28,7 @@ class ObjectDetector():
 
                 # Draw bounding box (Green)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.circle(frame, ((x1+x2)//2, (y1+y2)//2), 5, (0, 255, 0), -1)  # Center
 
                 # Get label text dimensions
                 (text_width, text_height), baseline = cv2.getTextSize(
@@ -55,5 +56,6 @@ class ObjectDetector():
                     1,
                     cv2.LINE_AA,
                 )
+
 
         return frame
