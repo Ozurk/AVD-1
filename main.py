@@ -62,6 +62,7 @@ class RobotUI(ctk.CTk):
         frame = self.picam2.capture_array()
         if frame is not None:
             frame = cv2.flip(frame, 0)
+            frame = cv2.resize(frame, (320, 240))
             
             # Run YOLO every 2 seconds to keep GUI responsive
             current_time = time.time()
