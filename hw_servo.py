@@ -21,7 +21,7 @@ class Servo():
             self.current_duty -= .001
             self.pwm.change_duty_cycle(self.current_duty)
 
-vert = Servo(1)
+vert = Servo(1, frequency=50, min_duty=5, max_duty=8)
 
 vert.calibrate()
         
