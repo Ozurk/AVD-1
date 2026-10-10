@@ -4,7 +4,7 @@ import time
 # Initialize Channel 0 (GPIO 18) and Channel 1 (GPIO 19) at 50Hz
 class Servo():
     def __init__(self, channel, frequency=50, min_duty=5, max_duty=10):
-        self.pwm = HardwarePWM(pwm_channel=channel, frequency=frequency)
+        self.pwm = HardwarePWM(pwm_channel=channel, hz=frequency)
         self.pwm.start(0)  # Start with 0% duty cycle
         self.min_duty = min_duty
         self.max_duty = max_duty
