@@ -2,7 +2,7 @@ from rpi_hardware_pwm import HardwarePWM
 import time
 
 # Initialize PWM Channel 0 (GPIO 18) at 50Hz (standard servo frequency)
-pwm = HardwarePWM(pwm_channel=1, hz=50)
+pwm = HardwarePWM(pwm_channel=0, hz=50)
 pwm.start(0) # Start with 0% duty cycle
 
 try:
