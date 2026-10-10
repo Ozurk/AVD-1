@@ -24,13 +24,16 @@ class Servo():
             self.pwm.change_duty_cycle(self.current_duty)
             time.sleep(0.003)  # Small delay to allow the servo to move
 
+        self.current_duty = self.max_duty - self.min_duty
+        self.pwm.change_duty_cycle(self.current_duty)
+
     def move(self, distance):
         """
         move the servio by a certain distance. Positive values move it one way, negative values the other.
         """
         old_duty = self.current_duty
         new_duty = self.current_duty + distance / 100
-        
+
         if self.min_duty <= new_duty <= self.max_duty:
             self.current_duty = new_duty
             self.pwm.change_duty_cycle(self.current_duty)
