@@ -12,16 +12,31 @@ servo_19.start(0)
 try:
     print("Moving both to 0 degrees")
     servo_18.change_duty_cycle(5.0)
-    servo_19.change_duty_cycle(5.0)
+    
     time.sleep(1.5)
 
     print("Moving in opposite directions")
     servo_18.change_duty_cycle(7.5) 
-    servo_19.change_duty_cycle(7.5)  # Stay at 0 degrees
+    
     time.sleep(1.5)
 
     print("Moving both to center (90 degrees)")
     servo_18.change_duty_cycle(5.5)
+    
+    time.sleep(1.5)
+
+    print("Moving both to 0 degrees")
+    
+    servo_19.change_duty_cycle(5.0)
+    time.sleep(1.5)
+
+    print("Moving in opposite directions")
+    
+    servo_19.change_duty_cycle(7.5)  # Stay at 0 degrees
+    time.sleep(1.5)
+
+    print("Moving both to center (90 degrees)")
+    
     servo_19.change_duty_cycle(10)
     time.sleep(1.5)
 
