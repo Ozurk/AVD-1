@@ -26,8 +26,8 @@ class RobotUI(ctk.CTk):
         self.object_detector = object_detection.ObjectDetector()
         
         # Initialize the servo on channel 0
-        self.pan_servo = hw_servo.Servo(channel=0)
-        self.tilt_servo = hw_servo.Servo(channel=1)  
+        self.pan_servo = hw_servo.Servo(channel=1)
+        self.tilt_servo = hw_servo.Servo(channel=0)  
         
         # 1. Set full screen
         self.attributes('-fullscreen', True)
