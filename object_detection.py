@@ -2,11 +2,16 @@ import cv2
 from ultralytics import YOLO
 
 class ObjectDetector():
-    def __init__(self, model_path="yolov8n_ncnn_model", targets: list = []):
+    def __init__(self, model_path="yolov8n_ncnn_model", targets: list = None):
+        if targets is None:
+            targets = []
+            
         # Load the YOLO model once during initialization
         self.model = YOLO(model_path)
         print(f"Loaded YOLO model from {model_path}")
-
+        self.targets = targets  # List of target class IDs to detect
+        self.primary_target = None
+        
     def process_frame(self, frame):
         """
         Accepts an image frame (NumPy array), runs YOLO object detection,
@@ -15,8 +20,12 @@ class ObjectDetector():
         if frame is None:
             return frame
 
-        # Run inference on the input frame
-        results = self.model(frame, verbose=False)
+        # Skip inference completely if no targets are selected
+        if not self.targets:
+            return frame
+
+        # Run inference on the input frame, filtering by selected class IDs
+        results = self.model(frame, classes=self.targets, verbose=False)
 
         # Draw bounding boxes and labels
         for result in results:
@@ -56,6 +65,5 @@ class ObjectDetector():
                     1,
                     cv2.LINE_AA,
                 )
-
 
         return frame

@@ -61,6 +61,18 @@ class RobotUI(ctk.CTk):
         self.target_options = ["person", "cat", "dog", "car", "bird"]
         self.target_vars = {target: ctk.BooleanVar(value=True) for target in self.target_options}
 
+        # Map target strings to standard YOLO COCO class IDs
+        self.class_id_map = {
+            "person": 0,
+            "car": 2,
+            "bird": 14,
+            "cat": 15,
+            "dog": 16
+        }
+        
+        # Initialize detector with default selected IDs
+        self.object_detector.targets = [self.class_id_map[t] for t in self.target_options]
+
         # Start the video loop
         self.update_video_feed()
 
@@ -169,14 +181,24 @@ class RobotUI(ctk.CTk):
             self.target_window.focus()
 
     def save_targets(self):
+        selected_class_ids = []
+        
         with TARGETS_PATH.open("w", newline="", encoding="utf-8") as config_file:
             writer = csv.writer(config_file)
             # Write the header with specified column names
             writer.writerow(["target", "selected"])
             
-            # Write the state of each checkbox
+            # Write the state of each checkbox and collect active IDs
             for target, var in self.target_vars.items():
-                writer.writerow([target, str(var.get())])
+                is_selected = var.get()
+                writer.writerow([target, str(is_selected)])
+                
+                # If checked, add the corresponding class ID to our list
+                if is_selected:
+                    selected_class_ids.append(self.class_id_map[target])
+
+        # Pass the selected class IDs to object_detection.py
+        self.object_detector.targets = selected_class_ids
 
         # Update the UI status label
         self.target_status_label.configure(text="Targets saved to targets.csv!")
