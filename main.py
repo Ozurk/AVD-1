@@ -107,7 +107,7 @@ class RobotUI(ctk.CTk):
                     # Move the servo based on the difference (hw_servo.move divides this by 100)
                     # Note: You may need to invert error_x (e.g., -error_x) depending on servo physical orientation
                     self.pan_servo.move(-1 * error_x)
-                    self.tilt_servo.move(error_y)  # Assuming you have a similar calculation for tilt
+                    self.tilt_servo.move(-1 * error_y)  # Assuming you have a similar calculation for tilt
 
             # Display the marked-up frame (or raw frame if waiting)
             display_frame = self.cached_frame if self.cached_frame is not None else frame
