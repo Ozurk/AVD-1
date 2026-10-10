@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 
 class ObjectDetector():
-    def __init__(self, model_path="yolov8n.pt"):
+    def __init__(self, model_path="yolov8n_ncnn_model"):
         # Load the YOLO model once during initialization
         self.model = YOLO(model_path)
         print(f"Loaded YOLO model from {model_path}")
