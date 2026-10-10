@@ -51,7 +51,7 @@ class ObjectDetector():
                     (x1, y1 - 5),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,
-                    (0, 0, 0),
+                    (255, 255, 255),
                     1,
                     cv2.LINE_AA,
                 )
