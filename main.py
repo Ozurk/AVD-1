@@ -8,6 +8,7 @@ from picamera2 import Picamera2
 import object_detection
 import time
 import hw_servo  # Imported the servo module
+import gpiozero
 
 # Tell Python to use the primary physical monitor
 os.environ["DISPLAY"] = ":0"
@@ -28,6 +29,7 @@ class RobotUI(ctk.CTk):
         # Initialize the servo on channel 0
         self.pan_servo = hw_servo.Servo(channel=1)
         self.tilt_servo = hw_servo.Servo(channel=0,min_duty=5.0, max_duty=8.0)  
+        self.trigger_pin = gpiozero.OutputDevice(17)
         
         # 1. Set full screen
         self.attributes('-fullscreen', True)
@@ -42,6 +44,8 @@ class RobotUI(ctk.CTk):
         self.picam2.start()
         self.last_detection_time = 0
         self.cached_frame = None  # Store the last processed frame
+        self.trigger = {"Engaged": False, "start_time": 0}  # Track trigger state and start time
+    
 
         # Label to hold the video feed
         self.video_label = ctk.CTkLabel(self, text="")
@@ -82,6 +86,20 @@ class RobotUI(ctk.CTk):
         # Start the video loop
         self.update_video_feed()
 
+    def engage_trigger(self):
+        """Engage the trigger for 1 second."""
+        self.trigger["Engaged"] = True
+        self.trigger["start_time"] = time.time()
+        self.trigger_pin.on()  # Turn on the GPIO pin
+        
+
+
+    def disengage_trigger(self):
+        """Disengage the trigger."""
+        self.trigger["Engaged"] = False
+        self.trigger_pin.off()  # Turn off the GPIO pin
+        
+
     def update_video_feed(self):
         frame = self.picam2.capture_array()
         if frame is not None:
@@ -91,7 +109,7 @@ class RobotUI(ctk.CTk):
             
             # Run YOLO every 2 seconds to keep GUI responsive
             current_time = time.time()
-            if current_time - self.last_detection_time >= 2.0:
+            if current_time - self.last_detection_time >= 1.0:
                 self.last_detection_time = current_time
                 
                 # Unpack the annotated frame and the best target center
@@ -108,6 +126,14 @@ class RobotUI(ctk.CTk):
                     # Note: You may need to invert error_x (e.g., -error_x) depending on servo physical orientation
                     self.pan_servo.move(-1 * error_x)
                     self.tilt_servo.move(-1 * error_y)  # Assuming you have a similar calculation for tilt
+
+                    if abs(error_x) < 10 and abs(error_y) < 10:  # If the target is centered within a threshold
+                        self.engage_trigger()
+
+                    if self.trigger["Engaged"]:
+                        if current_time - self.trigger["start_time"] >= 2.0:  # 2 seconds have passed
+                            self.disengage_trigger()
+
 
             # Display the marked-up frame (or raw frame if waiting)
             display_frame = self.cached_frame if self.cached_frame is not None else frame
