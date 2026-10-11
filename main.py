@@ -104,41 +104,33 @@ class RobotUI(ctk.CTk):
         frame = self.picam2.capture_array()
         if frame is not None:
             frame = cv2.flip(frame, 0)
-            # The frame is resized to 320x240, making the center coordinate (160, 120)
             frame = cv2.resize(frame, (320, 240))
-            
-            # Run YOLO every 2 seconds to keep GUI responsive
             current_time = time.time()
-            if current_time - self.last_detection_time >= .25:
+            
+            # 1. Run YOLO object detection every 0.25 seconds
+            if current_time - self.last_detection_time >= 0.25:
                 self.last_detection_time = current_time
-                
-                # Unpack the annotated frame and the best target center
                 self.cached_frame, best_center = self.object_detector.process_frame(frame)
                 
                 if best_center is not None:
                     target_x, target_y = best_center
-                    
-                    # Calculate the difference between the target X and the screen center X (160)
                     error_x = target_x - 160
-                    error_y = target_y - 120  # For tilt, if needed
+                    error_y = target_y - 120
                     
-                    # Move the servo based on the difference (hw_servo.move divides this by 100)
-                    # Note: You may need to invert error_x (e.g., -error_x) depending on servo physical orientation
                     self.pan_servo.move(-1 * error_x)
-                    self.tilt_servo.move(-1 * error_y)  # Assuming you have a similar calculation for tilt
+                    self.tilt_servo.move(-1 * error_y)
 
-                    if abs(error_x) < 10 and abs(error_y) < 10:  # If the target is centered within a threshold
-                        self.engage_trigger()
+                    # Only engage trigger if target is centered and not already fired
+                    if abs(error_x) < 10 and abs(error_y) < 10:
+                        if not self.trigger["Engaged"]:
+                            self.engage_trigger()
 
-                    if self.trigger["Engaged"]:
-                        if current_time - self.trigger["start_time"] >= 2.0:  # 2 seconds have passed
-                            self.disengage_trigger()
+            # 2. Check trigger duration independently on every UI frame loop
+            if self.trigger["Engaged"] and (current_time - self.trigger["start_time"] >= 2.0):
+                self.disengage_trigger()
 
-
-            # Display the marked-up frame (or raw frame if waiting)
+            # Display updated frame
             display_frame = self.cached_frame if self.cached_frame is not None else frame
-            
-            # Convert to PIL and update CTkImage
             image = Image.fromarray(display_frame)
             ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(self.screen_width, self.screen_height))
             self.video_label.configure(image=ctk_image)
