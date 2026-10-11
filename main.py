@@ -109,7 +109,7 @@ class RobotUI(ctk.CTk):
             
             # Run YOLO every 2 seconds to keep GUI responsive
             current_time = time.time()
-            if current_time - self.last_detection_time >= 1.0:
+            if current_time - self.last_detection_time >= .25:
                 self.last_detection_time = current_time
                 
                 # Unpack the annotated frame and the best target center
