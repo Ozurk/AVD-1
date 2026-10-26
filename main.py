@@ -103,7 +103,7 @@ class RobotUI(ctk.CTk):
     def update_video_feed(self):
         frame = self.picam2.capture_array()
         if frame is not None:
-            frame = cv2.flip(frame, 0)
+            # frame = cv2.flip(frame, 0)
             frame = cv2.resize(frame, (320, 240))
             current_time = time.time()
             
@@ -117,7 +117,7 @@ class RobotUI(ctk.CTk):
                     error_x = target_x - 160
                     error_y = target_y - 120
                     
-                    self.pan_servo.move(-1 * error_x)
+                    self.pan_servo.move(1 * error_x) #make -1 if inverted
                     self.tilt_servo.move(-1 * error_y)
 
                     # Only engage trigger if target is centered and not already fired
