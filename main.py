@@ -110,9 +110,9 @@ class RobotUI(ctk.CTk):
             # 1. Run YOLO object detection every 0.25 seconds
             if current_time - self.last_detection_time >= 0:
                 self.last_detection_time = current_time
-                self.cached_frame, best_center = self.object_detector.process_frame(frame)
+                self.cached_frame, best_center, confidence = self.object_detector.process_frame(frame)
                 
-                if best_center is not None:
+                if best_center is not None and confidence > 0.72:  # Only move if confidence is above threshold
                     target_x, target_y = best_center
                     error_x = target_x - 160
                     error_y = target_y - 120

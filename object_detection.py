@@ -79,4 +79,4 @@ class ObjectDetector():
                     cv2.LINE_AA,
                 )
 
-        return frame, best_center
+        return frame, best_center, best_confidence
