@@ -108,7 +108,7 @@ class RobotUI(ctk.CTk):
             current_time = time.time()
             
             # 1. Run YOLO object detection every 0.25 seconds
-            if current_time - self.last_detection_time >= 0.25:
+            if current_time - self.last_detection_time >= 0:
                 self.last_detection_time = current_time
                 self.cached_frame, best_center = self.object_detector.process_frame(frame)
                 
@@ -117,7 +117,7 @@ class RobotUI(ctk.CTk):
                     error_x = target_x - 160
                     error_y = target_y - 120
                     
-                    self.pan_servo.move(1 * error_x) #make -1 if inverted
+                    self.pan_servo.move(-1 * error_x) #make -1 if inverted
                     self.tilt_servo.move(-1 * error_y)
 
                     # Only engage trigger if target is centered and not already fired
