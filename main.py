@@ -123,6 +123,13 @@ class RobotUI(ctk.CTk):
                     # Only engage trigger if target is centered and not already fired
                     if abs(error_x) < 10 and abs(error_y) < 10:
                         if not self.trigger["Engaged"]:
+                            for x in range(25):
+                                self.tilt_servo.move(-1)
+                                time.sleep(.02)
+                            for x in range(25):
+                                self.tilt_servo.move(1)
+                                time.sleep(.02)
+                                
                             self.engage_trigger()
 
             # 2. Check trigger duration independently on every UI frame loop
