@@ -29,7 +29,7 @@ try:
     # installing it via pip usually causes conflicts.
     DEPENDENCIES = ["ultralytics", "opencv-python", "numpy", "customtkinter", "Pillow", "gpiozero", "NCNN", "rpi_hardware_pwm"]
     subprocess.run(
-        ["sudo"PYTHON_PATH, "-m", "pip", "install", "--upgrade"] + DEPENDENCIES + ["--break-system-packages"],
+        ["sudo",PYTHON_PATH, "-m", "pip", "install", "--upgrade"] + DEPENDENCIES + ["--break-system-packages"],
         check=True
     )
     print("Dependencies installed successfully.")
