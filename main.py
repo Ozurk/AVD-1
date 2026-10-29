@@ -1,57 +1,56 @@
+import os
 import csv
 import cv2
-import customtkinter as ctk
-from PIL import Image, ImageTk
-from pathlib import Path
-import os
-from picamera2 import Picamera2
-import object_detection
 import time
-import hw_servo  # Imported the servo module
+from pathlib import Path
+from PIL import Image
+
+import customtkinter as ctk
+from picamera2 import Picamera2
+
+# Enforce hardware-timed backend for Raspberry Pi 5
+os.environ["GPIOZERO_PIN_FACTORY"] = "lgpio"
 import gpiozero
 
-# Tell Python to use the primary physical monitor
+import object_detection
+import hw_servo
+
 os.environ["DISPLAY"] = ":0"
 CONFIG_PATH = Path(__file__).with_name("config.csv")
 TARGETS_PATH = Path(__file__).with_name("targets.csv")
 
-# Set modern theme
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
 class RobotUI(ctk.CTk):
     def __init__(self):
         super().__init__()
-
         self.title("YOLO Animal Detection")
-        self.object_detector = object_detection.ObjectDetector()
         
-        # Initialize the servo on channel 0
-        self.pan_servo = hw_servo.Servo(18)
-        self.tilt_servo = hw_servo.Servo(19,min_duty=5.0, max_duty=7.0)  
+        # 1. Initialize hardware
+        self.object_detector = object_detection.ObjectDetector()
+        self.pan_servo = hw_servo.Servo(pin=18)
+        self.tilt_servo = hw_servo.Servo(pin=19, min_duty=5.0, max_duty=7.0)  
         self.trigger_pin = gpiozero.OutputDevice(17)
         
-        # 1. Set full screen
+        # 2. Setup UI
         self.attributes('-fullscreen', True)
-        # Bind the Escape key so you have a way to close the full-screen app
         self.bind("<Escape>", self.quit_app)
 
-        # 2. Initialize Picamera2
+        # 3. Setup Camera
         self.picam2 = Picamera2()
         self.picam2.configure(self.picam2.create_preview_configuration(main={"size": (640, 480)}))
         self.screen_width = self.winfo_screenwidth()
         self.screen_height = self.winfo_screenheight()
         self.picam2.start()
+        
         self.last_detection_time = 0
-        self.cached_frame = None  # Store the last processed frame
-        self.trigger = {"Engaged": False, "start_time": 0}  # Track trigger state and start time
-    
+        self.cached_frame = None 
+        self.trigger = {"Engaged": False, "start_time": 0}
 
-        # Label to hold the video feed
         self.video_label = ctk.CTkLabel(self, text="")
         self.video_label.pack(fill="both", expand=True)
 
-        # 3. Setup Button in the Top Right
         self.setup_btn = ctk.CTkButton(
             self, 
             text="Setup", 
@@ -62,81 +61,70 @@ class RobotUI(ctk.CTk):
         )
         self.setup_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
 
-        # Variables to keep track of the windows
+        # Window tracking and Targets
         self.setup_window = None
         self.config_window = None
         self.target_window = None
-
-        # Checkbox tracking variables for target selection
         self.target_options = ["person", "cat", "dog", "car", "bird"]
         self.target_vars = {target: ctk.BooleanVar(value=True) for target in self.target_options}
 
-        # Map target strings to standard YOLO COCO class IDs
         self.class_id_map = {
-            "person": 0,
-            "car": 2,
-            "bird": 14,
-            "cat": 15,
-            "dog": 16
+            "person": 0, "car": 2, "bird": 14, "cat": 15, "dog": 16
         }
-        
-        # Initialize detector with default selected IDs
         self.object_detector.targets = [self.class_id_map[t] for t in self.target_options]
 
-        # Start the video loop
         self.update_video_feed()
 
     def engage_trigger(self):
-        """Engage the trigger for 1 second."""
         self.trigger["Engaged"] = True
         self.trigger["start_time"] = time.time()
-        self.trigger_pin.on()  # Turn on the GPIO pin
-        
-
+        self.trigger_pin.on()
 
     def disengage_trigger(self):
-        """Disengage the trigger."""
         self.trigger["Engaged"] = False
-        self.trigger_pin.off()  # Turn off the GPIO pin
+        self.trigger_pin.off()
         
-
     def update_video_feed(self):
         frame = self.picam2.capture_array()
         if frame is not None:
-            # frame = cv2.flip(frame, 0)
             frame = cv2.resize(frame, (320, 240))
             current_time = time.time()
             
-            # 1. Run YOLO object detection every 0.25 seconds
+            # YOLO Inference Check
             if current_time - self.last_detection_time >= 0:
                 self.last_detection_time = current_time
                 self.cached_frame, best_center, confidence = self.object_detector.process_frame(frame)
                 
-                if best_center is not None and confidence > 0.72:  # Only move if confidence is above threshold
+                if best_center is not None and confidence > 0.72:
                     target_x, target_y = best_center
                     error_x = target_x - 160
                     error_y = target_y - 120
                     
-                    self.pan_servo.move(-1 * error_x) #make -1 if inverted
-                    self.tilt_servo.move(-1 * error_y)
+                    # Proportional Tracking (Adjust decimal for sensitivity)
+                    self.pan_servo.move(-1 * error_x * 0.5) 
+                    self.tilt_servo.move(-1 * error_y * 0.5)
 
-                    # Only engage trigger if target is centered and not already fired
-                    if abs(error_x) < 10 and abs(error_y) < 10:
+                    if abs(error_x) < 15 and abs(error_y) < 15:
+                        # Target is centered: kill PWM signals to freeze servos without jitter
+                        self.pan_servo.relax()
+                        self.tilt_servo.relax()
+                        
                         if not self.trigger["Engaged"]:
-                            for x in range(25):
+                            # Nod animation
+                            for _ in range(15):
                                 self.tilt_servo.move(-1)
-                                time.sleep(.02)
-                            for x in range(25):
+                                time.sleep(0.02)
+                            for _ in range(15):
                                 self.tilt_servo.move(1)
-                                time.sleep(.02)
+                                time.sleep(0.02)
                                 
                             self.engage_trigger()
 
-            # 2. Check trigger duration independently on every UI frame loop
+            # Disengage trigger after 2 seconds
             if self.trigger["Engaged"] and (current_time - self.trigger["start_time"] >= 2.0):
                 self.disengage_trigger()
 
-            # Display updated frame
+            # Render frame
             display_frame = self.cached_frame if self.cached_frame is not None else frame
             image = Image.fromarray(display_frame)
             ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(self.screen_width, self.screen_height))
@@ -148,33 +136,14 @@ class RobotUI(ctk.CTk):
         if self.setup_window is None or not self.setup_window.winfo_exists():
             self.setup_window = ctk.CTkToplevel(self)
             self.setup_window.title("Setup")
-            window_width = 350
-            window_height = 200
-            window_x = (self.winfo_screenwidth() - window_width) // 2
-            window_y = (self.winfo_screenheight() - window_height) // 2
-            self.setup_window.geometry(
-                f"{window_width}x{window_height}+{window_x}+{window_y}"
-            )
-            
+            w, h = 350, 200
+            x = (self.winfo_screenwidth() - w) // 2
+            y = (self.winfo_screenheight() - h) // 2
+            self.setup_window.geometry(f"{w}x{h}+{x}+{y}")
             self.setup_window.attributes('-topmost', True) 
             
-            btn_config = ctk.CTkButton(
-                self.setup_window, 
-                text="Config",
-                command=self.open_config_window,
-                font=("Arial", 14),
-                height=40
-            )
-            btn_config.pack(pady=(35, 15), padx=40, fill="x")
-
-            btn_target = ctk.CTkButton(
-                self.setup_window, 
-                text="Target Selection",
-                command=self.open_target_window, 
-                font=("Arial", 14),
-                height=40
-            )
-            btn_target.pack(pady=10, padx=40, fill="x")
+            ctk.CTkButton(self.setup_window, text="Config", command=self.open_config_window, font=("Arial", 14), height=40).pack(pady=(35, 15), padx=40, fill="x")
+            ctk.CTkButton(self.setup_window, text="Target Selection", command=self.open_target_window, font=("Arial", 14), height=40).pack(pady=10, padx=40, fill="x")
             self.setup_window.lift()
             self.setup_window.focus_force()
         else:
@@ -185,37 +154,18 @@ class RobotUI(ctk.CTk):
         if self.target_window is None or not self.target_window.winfo_exists():
             self.target_window = ctk.CTkToplevel(self)
             self.target_window.title("Target Selection")
-            window_width = 300
-            window_height = 450  # Increased height slightly to fit the save button
-            window_x = (self.winfo_screenwidth() - window_width) // 2
-            window_y = (self.winfo_screenheight() - window_height) // 2
-            self.target_window.geometry(
-                f"{window_width}x{window_height}+{window_x}+{window_y}"
-            )
+            w, h = 300, 450
+            x = (self.winfo_screenwidth() - w) // 2
+            y = (self.winfo_screenheight() - h) // 2
+            self.target_window.geometry(f"{w}x{h}+{x}+{y}")
             self.target_window.attributes('-topmost', True)
 
-            title_label = ctk.CTkLabel(self.target_window, text="Select Targets:", font=("Arial", 16, "bold"))
-            title_label.pack(pady=(15, 10))
+            ctk.CTkLabel(self.target_window, text="Select Targets:", font=("Arial", 16, "bold")).pack(pady=(15, 10))
 
-            # Dynamically generate the checkboxes
             for target in self.target_options:
-                cb = ctk.CTkCheckBox(
-                    self.target_window, 
-                    text=target.capitalize(), 
-                    variable=self.target_vars[target]
-                )
-                cb.pack(pady=8, padx=60, anchor="w")
+                ctk.CTkCheckBox(self.target_window, text=target.capitalize(), variable=self.target_vars[target]).pack(pady=8, padx=60, anchor="w")
 
-            # Add the Save Button for Targets
-            save_button = ctk.CTkButton(
-                self.target_window,
-                text="Save",
-                command=self.save_targets,
-                height=32,
-            )
-            save_button.pack(pady=(15, 6))
-
-            # Add a status label for target saving
+            ctk.CTkButton(self.target_window, text="Save", command=self.save_targets, height=32).pack(pady=(15, 6))
             self.target_status_label = ctk.CTkLabel(self.target_window, text="")
             self.target_status_label.pack(pady=(0, 8))
 
@@ -227,61 +177,38 @@ class RobotUI(ctk.CTk):
 
     def save_targets(self):
         selected_class_ids = []
-        
         with TARGETS_PATH.open("w", newline="", encoding="utf-8") as config_file:
             writer = csv.writer(config_file)
-            # Write the header with specified column names
             writer.writerow(["target", "selected"])
             
-            # Write the state of each checkbox and collect active IDs
             for target, var in self.target_vars.items():
                 is_selected = var.get()
                 writer.writerow([target, str(is_selected)])
-                
-                # If checked, add the corresponding class ID to our list
                 if is_selected:
                     selected_class_ids.append(self.class_id_map[target])
 
-        # Pass the selected class IDs to object_detection.py
         self.object_detector.targets = selected_class_ids
-
-        # Update the UI status label
         self.target_status_label.configure(text="Targets saved to targets.csv!")
 
     def open_config_window(self):
         if self.config_window is None or not self.config_window.winfo_exists():
             self.config_window = ctk.CTkToplevel(self)
             self.config_window.title("Config")
-            window_width = 360
-            window_height = 220
-            window_x = (self.winfo_screenwidth() - window_width) // 2
-            window_y = (self.winfo_screenheight() - window_height) // 2
-            self.config_window.geometry(
-                f"{window_width}x{window_height}+{window_x}+{window_y}"
-            )
+            w, h = 360, 220
+            x = (self.winfo_screenwidth() - w) // 2
+            y = (self.winfo_screenheight() - h) // 2
+            self.config_window.geometry(f"{w}x{h}+{x}+{y}")
             self.config_window.attributes('-topmost', True)
 
-            self.sensitivity_value_label = ctk.CTkLabel(
-                self.config_window, text="Sensitivity: 50"
-            )
+            self.sensitivity_value_label = ctk.CTkLabel(self.config_window, text="Sensitivity: 50")
             self.sensitivity_value_label.pack(pady=(24, 8))
-            self.sensitivity_slider = ctk.CTkSlider(
-                self.config_window,
-                from_=0,
-                to=100,
-                number_of_steps=100,
-                command=self.update_sensitivity_value,
-            )
+            
+            self.sensitivity_slider = ctk.CTkSlider(self.config_window, from_=0, to=100, number_of_steps=100, command=self.update_sensitivity_value)
             self.sensitivity_slider.set(50)
             self.sensitivity_slider.pack(fill="x", padx=30, pady=(0, 12))
 
-            save_button = ctk.CTkButton(
-                self.config_window,
-                text="Save",
-                command=self.save_sensitivity,
-                height=32,
-            )
-            save_button.pack(pady=(0, 6))
+            ctk.CTkButton(self.config_window, text="Save", command=self.save_sensitivity, height=32).pack(pady=(0, 6))
+            
             self.config_status_label = ctk.CTkLabel(self.config_window, text="")
             self.config_status_label.pack(pady=(0, 8))
 
@@ -292,14 +219,15 @@ class RobotUI(ctk.CTk):
             self.config_window.focus()
 
     def update_sensitivity_value(self, value):
-        self.sensitivity_value_label.configure(
-            text=f"Sensitivity: {int(float(value))}"
-        )
+        self.sensitivity_value_label.configure(text=f"Sensitivity: {int(float(value))}")
 
     def save_sensitivity(self):
         sensitivity = int(round(self.sensitivity_slider.get()))
-        with CONFIG_PATH.open("r", newline="", encoding="utf-8") as config_file:
-            rows = list(csv.reader(config_file))
+        try:
+            with CONFIG_PATH.open("r", newline="", encoding="utf-8") as config_file:
+                rows = list(csv.reader(config_file))
+        except FileNotFoundError:
+            rows = []
 
         sensitivity_row = None
         for row in rows:
@@ -308,15 +236,12 @@ class RobotUI(ctk.CTk):
                 break
 
         if sensitivity_row is None:
-            self.config_status_label.configure(
-                text="Sensitivity key not found in config.csv"
-            )
-            return
-
-        if len(sensitivity_row) > 1:
-            sensitivity_row[1] = str(sensitivity)
+            rows.append(["sensitivity", str(sensitivity)])
         else:
-            sensitivity_row.append(str(sensitivity))
+            if len(sensitivity_row) > 1:
+                sensitivity_row[1] = str(sensitivity)
+            else:
+                sensitivity_row.append(str(sensitivity))
 
         with CONFIG_PATH.open("w", newline="", encoding="utf-8") as config_file:
             csv.writer(config_file).writerows(rows)
@@ -324,7 +249,6 @@ class RobotUI(ctk.CTk):
         self.config_status_label.configure(text=f"Saved sensitivity: {sensitivity}")
 
     def quit_app(self, event=None):
-        """Safely release the camera and close the app."""
         try:
             self.picam2.stop()
         except Exception:
