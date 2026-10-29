@@ -27,9 +27,9 @@ try:
     print("Installing remaining project dependencies...")
     # picamera2 is omitted because it is pre-installed via apt on Raspberry Pi OS; 
     # installing it via pip usually causes conflicts.
-    DEPENDENCIES = ["ultralytics", "opencv-python", "numpy", "customtkinter", "Pillow", "gpiozero"]
+    DEPENDENCIES = ["ultralytics", "opencv-python", "numpy", "customtkinter", "Pillow", "gpiozero", "NCNN", "rpi_hardware_pwm"]
     subprocess.run(
-        [PYTHON_PATH, "-m", "pip", "install", "--upgrade"] + DEPENDENCIES + ["--break-system-packages"],
+        ["sudo"PYTHON_PATH, "-m", "pip", "install", "--upgrade"] + DEPENDENCIES + ["--break-system-packages"],
         check=True
     )
     print("Dependencies installed successfully.")
