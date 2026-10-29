@@ -1,19 +1,14 @@
-import os
 import csv
 import cv2
-import time
-from pathlib import Path
-from PIL import Image
-
 import customtkinter as ctk
+from PIL import Image
+from pathlib import Path
+import os
 from picamera2 import Picamera2
-
-# Enforce hardware-timed backend for Raspberry Pi 5
-os.environ["GPIOZERO_PIN_FACTORY"] = "lgpio"
-import gpiozero
-
 import object_detection
+import time
 import hw_servo
+import gpiozero
 
 os.environ["DISPLAY"] = ":0"
 CONFIG_PATH = Path(__file__).with_name("config.csv")
@@ -26,18 +21,16 @@ class RobotUI(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("YOLO Animal Detection")
-        
-        # 1. Initialize hardware
         self.object_detector = object_detection.ObjectDetector()
-        self.pan_servo = hw_servo.Servo(pin=18)
-        self.tilt_servo = hw_servo.Servo(pin=19, min_duty=5.0, max_duty=7.0)  
+        
+        # FIXED: Use Channel 2 for GPIO 18 and Channel 3 for GPIO 19 on Pi 5
+        self.pan_servo = hw_servo.Servo(channel=2)
+        self.tilt_servo = hw_servo.Servo(channel=3, min_duty=5.0, max_duty=7.0)  
         self.trigger_pin = gpiozero.OutputDevice(17)
         
-        # 2. Setup UI
         self.attributes('-fullscreen', True)
         self.bind("<Escape>", self.quit_app)
 
-        # 3. Setup Camera
         self.picam2 = Picamera2()
         self.picam2.configure(self.picam2.create_preview_configuration(main={"size": (640, 480)}))
         self.screen_width = self.winfo_screenwidth()
@@ -45,34 +38,30 @@ class RobotUI(ctk.CTk):
         self.picam2.start()
         
         self.last_detection_time = 0
-        self.cached_frame = None 
+        self.cached_frame = None
         self.trigger = {"Engaged": False, "start_time": 0}
-
+    
         self.video_label = ctk.CTkLabel(self, text="")
         self.video_label.pack(fill="both", expand=True)
 
         self.setup_btn = ctk.CTkButton(
-            self, 
-            text="Setup", 
-            command=self.open_setup_window, 
-            width=120,
-            height=40,
-            font=("Arial", 16, "bold")
+            self, text="Setup", command=self.open_setup_window, 
+            width=120, height=40, font=("Arial", 16, "bold")
         )
         self.setup_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-20, y=20)
 
-        # Window tracking and Targets
         self.setup_window = None
         self.config_window = None
         self.target_window = None
+
         self.target_options = ["person", "cat", "dog", "car", "bird"]
         self.target_vars = {target: ctk.BooleanVar(value=True) for target in self.target_options}
 
         self.class_id_map = {
             "person": 0, "car": 2, "bird": 14, "cat": 15, "dog": 16
         }
+        
         self.object_detector.targets = [self.class_id_map[t] for t in self.target_options]
-
         self.update_video_feed()
 
     def engage_trigger(self):
@@ -90,7 +79,6 @@ class RobotUI(ctk.CTk):
             frame = cv2.resize(frame, (320, 240))
             current_time = time.time()
             
-            # YOLO Inference Check
             if current_time - self.last_detection_time >= 0:
                 self.last_detection_time = current_time
                 self.cached_frame, best_center, confidence = self.object_detector.process_frame(frame)
@@ -100,31 +88,28 @@ class RobotUI(ctk.CTk):
                     error_x = target_x - 160
                     error_y = target_y - 120
                     
-                    # Proportional Tracking (Adjust decimal for sensitivity)
-                    self.pan_servo.move(-1 * error_x * 0.5) 
+                    # Proportional movement
+                    self.pan_servo.move(-1 * error_x * 0.5)
                     self.tilt_servo.move(-1 * error_y * 0.5)
 
-                    if abs(error_x) < 15 and abs(error_y) < 15:
-                        # Target is centered: kill PWM signals to freeze servos without jitter
+                    if abs(error_x) < 10 and abs(error_y) < 10:
+                        # Target is centered: kill PWM signals to freeze servos perfectly still
                         self.pan_servo.relax()
                         self.tilt_servo.relax()
                         
                         if not self.trigger["Engaged"]:
-                            # Nod animation
-                            for _ in range(15):
+                            for x in range(25):
                                 self.tilt_servo.move(-1)
-                                time.sleep(0.02)
-                            for _ in range(15):
+                                time.sleep(.02)
+                            for x in range(25):
                                 self.tilt_servo.move(1)
-                                time.sleep(0.02)
+                                time.sleep(.02)
                                 
                             self.engage_trigger()
 
-            # Disengage trigger after 2 seconds
             if self.trigger["Engaged"] and (current_time - self.trigger["start_time"] >= 2.0):
                 self.disengage_trigger()
 
-            # Render frame
             display_frame = self.cached_frame if self.cached_frame is not None else frame
             image = Image.fromarray(display_frame)
             ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(self.screen_width, self.screen_height))
@@ -137,8 +122,7 @@ class RobotUI(ctk.CTk):
             self.setup_window = ctk.CTkToplevel(self)
             self.setup_window.title("Setup")
             w, h = 350, 200
-            x = (self.winfo_screenwidth() - w) // 2
-            y = (self.winfo_screenheight() - h) // 2
+            x, y = (self.winfo_screenwidth() - w) // 2, (self.winfo_screenheight() - h) // 2
             self.setup_window.geometry(f"{w}x{h}+{x}+{y}")
             self.setup_window.attributes('-topmost', True) 
             
@@ -155,8 +139,7 @@ class RobotUI(ctk.CTk):
             self.target_window = ctk.CTkToplevel(self)
             self.target_window.title("Target Selection")
             w, h = 300, 450
-            x = (self.winfo_screenwidth() - w) // 2
-            y = (self.winfo_screenheight() - h) // 2
+            x, y = (self.winfo_screenwidth() - w) // 2, (self.winfo_screenheight() - h) // 2
             self.target_window.geometry(f"{w}x{h}+{x}+{y}")
             self.target_window.attributes('-topmost', True)
 
@@ -195,20 +178,17 @@ class RobotUI(ctk.CTk):
             self.config_window = ctk.CTkToplevel(self)
             self.config_window.title("Config")
             w, h = 360, 220
-            x = (self.winfo_screenwidth() - w) // 2
-            y = (self.winfo_screenheight() - h) // 2
+            x, y = (self.winfo_screenwidth() - w) // 2, (self.winfo_screenheight() - h) // 2
             self.config_window.geometry(f"{w}x{h}+{x}+{y}")
             self.config_window.attributes('-topmost', True)
 
             self.sensitivity_value_label = ctk.CTkLabel(self.config_window, text="Sensitivity: 50")
             self.sensitivity_value_label.pack(pady=(24, 8))
-            
             self.sensitivity_slider = ctk.CTkSlider(self.config_window, from_=0, to=100, number_of_steps=100, command=self.update_sensitivity_value)
             self.sensitivity_slider.set(50)
             self.sensitivity_slider.pack(fill="x", padx=30, pady=(0, 12))
 
             ctk.CTkButton(self.config_window, text="Save", command=self.save_sensitivity, height=32).pack(pady=(0, 6))
-            
             self.config_status_label = ctk.CTkLabel(self.config_window, text="")
             self.config_status_label.pack(pady=(0, 8))
 
