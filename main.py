@@ -27,8 +27,8 @@ class RobotUI(ctk.CTk):
         self.object_detector = object_detection.ObjectDetector()
         
         # Initialize the servo on channel 0
-        self.pan_servo = hw_servo.Servo(channel=1)
-        self.tilt_servo = hw_servo.Servo(channel=0,min_duty=5.0, max_duty=7.0)  
+        self.pan_servo = hw_servo.Servo(channel=2)
+        self.tilt_servo = hw_servo.Servo(channel=3,min_duty=5.0, max_duty=7.0)  
         self.trigger_pin = gpiozero.OutputDevice(17)
         
         # 1. Set full screen
