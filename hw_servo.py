@@ -1,54 +1,72 @@
-from adafruit_servokit import ServoKit
+import os
 import time
 
-# Initialize the I2C PCA9685 (address 0x40 is default)
-# 16 channels is standard for PCA9685 breakout boards
-kit = ServoKit(channels=16)
+# Force gpiozero to use the native Pi 5 lgpio driver for hardware-timed PWM
+os.environ["GPIOZERO_PIN_FACTORY"] = "lgpio"
+from gpiozero import Servo as GZServo
 
-class Servo():
-    def __init__(self, channel, min_angle=0, max_angle=180):
-        self.channel = channel
-        self.servo = kit.servo[self.channel]
-        self.min_angle = min_angle
-        self.max_angle = max_angle
-        self.current_angle = 0.0
+class Servo:
+    def __init__(self, pin: int, frequency: int = 50, min_duty: float = 5.0, max_duty: float = 10.0):
+        # Convert duty cycle percentages back to pulse widths in seconds for gpiozero
+        period = 1.0 / frequency
+        min_pulse = (min_duty / 100.0) * period
+        max_pulse = (max_duty / 100.0) * period
+        
+        # Initialize the servo on the given physical GPIO pin
+        self.servo = GZServo(pin, min_pulse_width=min_pulse, max_pulse_width=max_pulse)
+        self.min_duty = min_duty
+        self.max_duty = max_duty
+        
+        # gpiozero tracks position using a scale from -1.0 (min) to 1.0 (max), 0.0 is center
+        self.current_value = 0.0 
         self.calibrate()
 
     def calibrate(self):
-        self.current_angle = self.min_angle
-        self.servo.angle = self.current_angle
+        """Smoothly sweep the servo limits on boot to prevent power brown-outs."""
+        self.current_value = 0.0
         
-        while self.current_angle <= self.max_angle:
-            self.current_angle += 1
-            time.sleep(0.003)
-            self.servo.angle = self.current_angle
+        # Sweep to min
+        while self.current_value > -1.0:
+            self.current_value = max(-1.0, self.current_value - 0.05)
+            self.servo.value = self.current_value
+            time.sleep(0.01)
             
-        while self.current_angle >= self.min_angle:
-            self.current_angle -= 1
-            self.servo.angle = self.current_angle
-            time.sleep(0.003)
+        # Sweep to max
+        while self.current_value < 1.0:
+            self.current_value = min(1.0, self.current_value + 0.05)
+            self.servo.value = self.current_value
+            time.sleep(0.01)
+            
+        # Back to center
+        while self.current_value > 0.0:
+            self.current_value = max(0.0, self.current_value - 0.05)
+            self.servo.value = self.current_value
+            time.sleep(0.01)
 
-        # Correct midpoint calculation[cite: 4]
-        self.current_angle = (self.max_angle + self.min_angle) / 2.0
-        self.servo.angle = self.current_angle
+        self.current_value = 0.0
+        self.servo.value = self.current_value
         time.sleep(0.2)
-        self.relax()  # Cut power to freeze without jitter[cite: 4]
+        self.relax()
 
-    def move(self, distance):
-        """Move the servo by a certain distance."""
-        old_angle = self.current_angle
+    def move(self, distance: float):
+        """Move the servo proportionally to the pixel error distance."""
+        # Convert the raw pixel distance into gpiozero's -1.0 to 1.0 scale
+        duty_range = self.max_duty - self.min_duty
+        scale_factor = 2.0 / duty_range
         
-        # Map the arbitrary 'distance' to an angle change (approx 0.36 degrees per unit 
-        # to match the old duty cycle scaling of distance/100 over a 5.0 duty range)[cite: 4]
-        angle_change = distance * 0.36
-        new_angle = self.current_angle + angle_change
+        # We divide by 100.0 to match the scaling of your original duty cycle math
+        value_shift = (distance / 100.0) * scale_factor
+        new_value = self.current_value + value_shift
 
-        if self.min_angle <= new_angle <= self.max_angle:
-            self.current_angle = new_angle
-            self.servo.angle = self.current_angle
+        # Clamp safely within physical limits
+        if -1.0 <= new_value <= 1.0:
+            self.current_value = new_value
+            self.servo.value = self.current_value
         else:
-            self.current_angle = old_angle  # Revert to old angle if out of bounds[cite: 4]
-
+            # Snap to limit if target exceeds bounds
+            self.current_value = 1.0 if new_value > 1.0 else -1.0
+            self.servo.value = self.current_value
+            
     def relax(self):
-        """Set angle to None to completely shut off the PWM signal when idle."""
-        self.servo.angle = None
+        """Turn off the active PWM signal to completely eliminate electrical jitter."""
+        self.servo.value = None
