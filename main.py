@@ -10,7 +10,7 @@ import time
 import hw_servo
 import gpiozero
 
-os.environ["DISPLAY"] = ":0"
+# os.environ["DISPLAY"] = ":0"
 CONFIG_PATH = Path(__file__).with_name("config.csv")
 TARGETS_PATH = Path(__file__).with_name("targets.csv")
 
