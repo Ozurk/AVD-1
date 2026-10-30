@@ -1,5 +1,6 @@
 import os
 import subprocess
+import venv
 from textwrap import dedent
 
 # -------------------------------
@@ -7,29 +8,42 @@ from textwrap import dedent
 # -------------------------------
 PROJECT_NAME = "AVD-1"
 PROJECT_DIR = "/home/admin/AVD-1"
-PYTHON_PATH = "/usr/bin/python3" 
+VENV_DIR = os.path.join(PROJECT_DIR, ".venv")
+# Use the virtual environment's Python executable
+VENV_PYTHON = os.path.join(VENV_DIR, "bin", "python")
 ENTRY_FILE = "main.py"
 SERVICE_FILE = f"/etc/systemd/system/{PROJECT_NAME}.service"
 
 # -------------------------------
-# 1. Install Dependencies Safely
+# 1. Create Virtual Environment
+# -------------------------------
+print(f"Creating virtual environment at {VENV_DIR}...")
+try:
+    # --system-site-packages is required to access apt-installed packages like picamera2
+    venv.create(VENV_DIR, with_pip=True, system_site_packages=True)
+    print("Virtual environment created.")
+except Exception as e:
+    print(f"Error creating virtual environment: {e}")
+    exit(1)
+
+# -------------------------------
+# 2. Install Dependencies Safely
 # -------------------------------
 print("Installing PyTorch (CPU-only) to save storage...")
 try:
-    # Install CPU Torch first to prevent gigabytes of useless CUDA/NVIDIA downloads
+    # Install using the venv Python, removed --break-system-packages
     subprocess.run(
-        [PYTHON_PATH, "-m", "pip", "install", "torch", "torchvision", 
-         "--index-url", "https://download.pytorch.org/whl/cpu", 
-         "--break-system-packages"],
+        [VENV_PYTHON, "-m", "pip", "install", "torch", "torchvision", 
+         "--index-url", "https://download.pytorch.org/whl/cpu"],
         check=True
     )
     
     print("Installing remaining project dependencies...")
-    # picamera2 is omitted because it is pre-installed via apt on Raspberry Pi OS; 
-    # installing it via pip usually causes conflicts.
     DEPENDENCIES = ["ultralytics", "opencv-python", "numpy", "customtkinter", "Pillow", "gpiozero", "NCNN", "rpi_hardware_pwm"]
+    
+    # Removed 'sudo' and '--break-system-packages' as we are installing into the local venv
     subprocess.run(
-        ["sudo",PYTHON_PATH, "-m", "pip", "install", "--upgrade"] + DEPENDENCIES + ["--break-system-packages"],
+        [VENV_PYTHON, "-m", "pip", "install", "--upgrade"] + DEPENDENCIES,
         check=True
     )
     print("Dependencies installed successfully.")
@@ -38,12 +52,12 @@ except subprocess.CalledProcessError as e:
     exit(1)
 
 # -------------------------------
-# 2. Create systemd service file
+# 3. Create systemd service file
 # -------------------------------
 print("⚙️  Creating systemd service...")
 
 # Note: GUI apps require specific environment variables to render on the desktop via systemd.
-# The user ID is assumed to be 1000 (default for the first user).
+# The ExecStart now points to the virtual environment's Python.
 service_content = dedent(f"""\
     [Unit]
     Description=Animal Vision Defense (AVD-1)
@@ -56,7 +70,7 @@ service_content = dedent(f"""\
     Environment="WAYLAND_DISPLAY=wayland-1"
     Environment="XDG_RUNTIME_DIR=/run/user/1000"
     WorkingDirectory={PROJECT_DIR}
-    ExecStart={PYTHON_PATH} {PROJECT_DIR}/{ENTRY_FILE}
+    ExecStart={VENV_PYTHON} {PROJECT_DIR}/{ENTRY_FILE}
     Restart=always
     RestartSec=5
 
@@ -78,7 +92,7 @@ except Exception as e:
     exit(1)
 
 # -------------------------------
-# 3. Enable and start the service
+# 4. Enable and start the service
 # -------------------------------
 print("Enabling and starting service...")
 try:
