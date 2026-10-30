@@ -27,19 +27,19 @@ class Servo:
         
         # Sweep to min
         while self.current_value > -1.0:
-            self.current_value = max(-1.0, self.current_value - 0.05)
+            self.current_value = max(-1.0, self.current_value - 0.01)
             self.servo.value = self.current_value
             time.sleep(0.01)
             
         # Sweep to max
         while self.current_value < 1.0:
-            self.current_value = min(1.0, self.current_value + 0.05)
+            self.current_value = min(1.0, self.current_value + 0.01)
             self.servo.value = self.current_value
             time.sleep(0.01)
             
         # Back to center
         while self.current_value > 0.0:
-            self.current_value = max(0.0, self.current_value - 0.05)
+            self.current_value = max(0.0, self.current_value - 0.01)
             self.servo.value = self.current_value
             time.sleep(0.01)
 
