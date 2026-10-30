@@ -98,13 +98,6 @@ class RobotUI(ctk.CTk):
                         self.tilt_servo.relax()
                         
                         if not self.trigger["Engaged"]:
-                            for x in range(25):
-                                self.tilt_servo.move(-1)
-                                time.sleep(.02)
-                            for x in range(25):
-                                self.tilt_servo.move(1)
-                                time.sleep(.02)
-                                
                             self.engage_trigger()
 
             if self.trigger["Engaged"] and (current_time - self.trigger["start_time"] >= 2.0):
