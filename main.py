@@ -20,12 +20,12 @@ ctk.set_default_color_theme("blue")
 class RobotUI(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("YOLO Animal Detection")
+        self.title("Squirrel Detection")
         self.object_detector = object_detection.ObjectDetector()
         
         # FIXED: Use Channel 2 for GPIO 18 and Channel 3 for GPIO 19 on Pi 5
-        self.pan_servo = hw_servo.Servo(pin= 18)
-        self.tilt_servo = hw_servo.Servo(pin= 19)  
+        self.pan_servo = hw_servo.Servo(channel=0)
+        self.tilt_servo = hw_servo.Servo(channel=1)
         self.trigger_pin = gpiozero.OutputDevice(17)
         
         self.attributes('-fullscreen', True)
@@ -54,11 +54,11 @@ class RobotUI(ctk.CTk):
         self.config_window = None
         self.target_window = None
 
-        self.target_options = ["person", "cat", "dog", "car", "bird"]
+        self.target_options = ["squirrle"]
         self.target_vars = {target: ctk.BooleanVar(value=True) for target in self.target_options}
 
         self.class_id_map = {
-            "person": 0, "car": 2, "bird": 14, "cat": 15, "dog": 16
+            "squrrle": 0
         }
         
         self.object_detector.targets = [self.class_id_map[t] for t in self.target_options]
