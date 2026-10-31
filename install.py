@@ -39,7 +39,7 @@ try:
     )
     
     print("Installing remaining project dependencies...")
-    DEPENDENCIES = ["ultralytics", "opencv-python", "numpy", "customtkinter", "Pillow", "gpiozero", "NCNN", "rpi_hardware_pwm"]
+    DEPENDENCIES = ["ultralytics", "opencv-python", "numpy", "customtkinter", "Pillow", "NCNN", "gpiozero", "adafruit-circuitpython-servokit"]
     
     # Removed 'sudo' and '--break-system-packages' as we are installing into the local venv
     subprocess.run(
