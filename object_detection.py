@@ -2,11 +2,11 @@ import cv2
 from ultralytics import YOLO
 
 class ObjectDetector():
-    def __init__(self, model_path="Detection Models/yolo80wsquirrles", targets: list = None):
+    def __init__(self, model_path="Detection Models/yolo80wsquirrles/best.pt", targets: list = None):
         if targets is None:
             targets = []
             
-        # Load the YOLO model once during initialization
+        # Load the YOLO model once during initializations
         self.model = YOLO(model_path)
         print(f"Loaded YOLO model from {model_path}")
         self.targets = targets  # List of target class IDs to detect
