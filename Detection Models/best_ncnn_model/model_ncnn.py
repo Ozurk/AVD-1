@@ -8,8 +8,8 @@ def test_inference():
     out = []
 
     with ncnn.Net() as net:
-        net.load_param("runs/detect/runs/detect/squirrel_coco-3/weights/best_ncnn_model/model.ncnn.param")
-        net.load_model("runs/detect/runs/detect/squirrel_coco-3/weights/best_ncnn_model/model.ncnn.bin")
+        net.load_param("Object Detection Training/runs/detect/runs/detect/squirrel_coco-3/weights/best_ncnn_model/model.ncnn.param")
+        net.load_model("Object Detection Training/runs/detect/runs/detect/squirrel_coco-3/weights/best_ncnn_model/model.ncnn.bin")
 
         with net.create_extractor() as ex:
             ex.input("in0", ncnn.Mat(in0.squeeze(0).numpy()).clone())
