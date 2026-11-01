@@ -54,11 +54,18 @@ class RobotUI(ctk.CTk):
         self.config_window = None
         self.target_window = None
 
-        self.target_options = ["squirrle"]
+        self.target_options = ["squirrle", "People", "Dog", "Cat", "Bird", "Cow", "Bear", "Mouse"]
         self.target_vars = {target: ctk.BooleanVar(value=True) for target in self.target_options}
 
         self.class_id_map = {
-            "squrrle": 0
+            "squirrle": 80,
+            "People": 0,
+            "Dog": 18,
+            "Cat": 19,
+            "Bird": 14,
+            "Cow": 19,
+            "Bear" : 21,
+            "Mouse": 64
         }
         
         self.object_detector.targets = [self.class_id_map[t] for t in self.target_options]
