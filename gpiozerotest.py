@@ -1,47 +1,32 @@
-from gpiozero import Servo
-from time import sleep
+import time
+from adafruit_servokit import ServoKit
 
-def test_gpiozero_sweep():
-    # Initialize the servo on GPIO 18.
-    # Note: Standard servos use 1ms to 2ms pulses. If your servo has a wider range 
-    # (like 0.5ms to 2.5ms), initialize it like: Servo(18, min_pulse_width=0.0005, max_pulse_width=0.0025)
-    servo = Servo(18)
+# Initialize the I2C PWM/Servo driver (e.g., PCA9685).
+# Note: The typical default I2C address for the PCA9685 is 0x40.
+# We are setting address=0x00 as requested.
+kit = ServoKit(channels=16, address=0x00)
 
-    print("Moving to minimum position...")
-    servo.min()
-    sleep(1)
+# Assuming the servo is attached to channel 0
+servo = kit.servo[0]
 
-    print("Moving to center position...")
-    servo.mid()
-    sleep(1)
+def sweep_servo():
+    print("Starting servo sweep. Press Ctrl+C to stop.")
+    try:
+        while True:
+            # Sweep from 0 to 180 degrees
+            for angle in range(0, 181, 1):
+                servo.angle = angle
+                time.sleep(0.015)
+            
+            # Sweep from 180 down to 0 degrees
+            for angle in range(180, -1, -1):
+                servo.angle = angle
+                time.sleep(0.015)
+                
+    except KeyboardInterrupt:
+        print("\nSweep stopped.")
+        # Optional: return servo to 0 or 90 degrees when stopped
+        # servo.angle = 0
 
-    print("Moving to maximum position...")
-    servo.max()
-    sleep(1)
-
-    print("Starting smooth sweep...")
-    
-    # gpiozero maps the servo range from -1.0 (min) to 1.0 (max)
-    step = 0.02
-    delay = 0.02
-
-    # Sweep from min to max
-    value = -1.0
-    while value <= 1.0:
-        servo.value = round(value, 2)
-        sleep(delay)
-        value += step
-
-    # Sweep from max back to min
-    value = 1.0
-    while value >= -1.0:
-        servo.value = round(value, 2)
-        sleep(delay)
-        value -= step
-
-    print("Sweep complete. Relaxing servo.")
-    # Setting the value to None stops the PWM signal, preventing jitter
-    servo.value = None
-
-if __name__ == "__main__":
-    test_gpiozero_sweep()
+if __name__ == '__main__':
+    sweep_servo()
