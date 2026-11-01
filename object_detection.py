@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 
 class ObjectDetector():
-    def __init__(self, model_path="Detection Models/yolo80wsquirrles/best.pt", targets: list = None):
+    def __init__(self, model_path="Detection Models/yolo80wsquirrles.ncnn", targets: list = None):
         if targets is None:
             targets = []
             
