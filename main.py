@@ -24,8 +24,8 @@ class RobotUI(ctk.CTk):
         self.object_detector = object_detection.ObjectDetector()
         
         # FIXED: Use Channel 2 for GPIO 18 and Channel 3 for GPIO 19 on Pi 5
-        self.pan_servo = hw_servo.Servo(channel=0)
-        self.tilt_servo = hw_servo.Servo(channel=1)
+        self.pan_servo = hw_servo.Servo(channel=1)
+        self.tilt_servo = hw_servo.Servo(channel=0)
         self.trigger_pin = gpiozero.OutputDevice(17)
         
         self.attributes('-fullscreen', True)
